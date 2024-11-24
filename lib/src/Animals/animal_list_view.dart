@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:vetapp/src/Animals/animal_create_view.dart';
 
+import '../settings/settings_view.dart';
 import 'animal.dart';
 import 'animal_details_view.dart';
-import 'animal_create_view.dart';
-import '../settings/settings_view.dart';
 
 class AnimalListView extends StatelessWidget {
   const AnimalListView({super.key});
@@ -28,29 +28,24 @@ class AnimalListView extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('animals').snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            print(snapshot.error);
-            return const Center(child: Text('Error loading animals.'));
-          }
 
-          final animalDocs = snapshot.data?.docs ?? [];
-
-          if (animalDocs.isEmpty) {
-            return const Center(child: Text('No animals found.'));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No animals found'));
           }
 
           return ListView.builder(
             restorationId: 'animalListView',
-            itemCount: animalDocs.length,
+            itemCount: snapshot.data!.docs.length,
             itemBuilder: (BuildContext context, int index) {
-              final animalData =
-                  animalDocs[index].data() as Map<String, dynamic>;
-
-              // Convert Firestore data to an Animal object
-              final animal = Animal.fromMap(animalData);
+              final doc = snapshot.data!.docs[index];
+              final animal = Animal.fromFirestore(doc);
 
               return ListTile(
                 title: Text(animal.name),
